@@ -9,8 +9,6 @@ dotenv.config();
 const app = express();
 
 // CRITICAL: Start HTTP server BEFORE MongoDB connection
-// This allows Railway's health check to pass even if MongoDB is slow
-
 const PORT = process.env.PORT || 5000;
 const HOST = '0.0.0.0';
 
@@ -22,7 +20,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Simple health check - responds immediately, doesn't wait for MongoDB
+// Simple health check - responds immediately
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -44,7 +42,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/admin', require('./routes/admin'));
 
-// Start server IMMEDIATELY (don't wait for MongoDB)
+// Start server IMMEDIATELY
 const server = app.listen(PORT, HOST, () => {
   console.log('============================================================');
   console.log(`🚀 Server running on http://${HOST}:${PORT}`);
@@ -53,7 +51,7 @@ const server = app.listen(PORT, HOST, () => {
   console.log('============================================================');
 });
 
-// Configure server timeouts for Railway
+// Configure server timeouts
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 66000;
 server.timeout = 120000;
@@ -74,32 +72,48 @@ const connectDB = async () => {
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error.message);
     console.log('⚠️  Server continues running without MongoDB');
-    // Retry connection after 5 seconds
     setTimeout(connectDB, 5000);
   }
 };
 
-// Connect to MongoDB (non-blocking)
 connectDB();
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
+// Graceful shutdown - FIXED VERSION
+process.on('SIGTERM', async () => {
   console.log('👋 SIGTERM received, shutting down gracefully');
-  server.close(() => {
+  
+  server.close(async () => {
     console.log('✅ HTTP server closed');
-    mongoose.connection.close(false, () => {
+    
+    try {
+      await mongoose.connection.close(); // ✅ Fixed: No callback
       console.log('✅ MongoDB connection closed');
       process.exit(0);
-    });
+    } catch (err) {
+      console.error('❌ Error closing MongoDB:', err);
+      process.exit(1);
+    }
   });
+  
+  // Force shutdown after 30 seconds
+  setTimeout(() => {
+    console.error('⚠️  Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('👋 SIGINT received, shutting down gracefully');
-  server.close(() => {
-    mongoose.connection.close(false, () => {
+  
+  server.close(async () => {
+    try {
+      await mongoose.connection.close();
+      console.log('✅ MongoDB connection closed');
       process.exit(0);
-    });
+    } catch (err) {
+      console.error('❌ Error closing MongoDB:', err);
+      process.exit(1);
+    }
   });
 });
 
@@ -110,7 +124,6 @@ process.on('unhandledRejection', (err) => {
 
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err.message);
-  // Don't exit - let Railway restart if needed
 });
 
 console.log('✅ Application initialized');
