@@ -16,14 +16,15 @@ app.use(express.json());
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
-    message: 'Server running - v3.0',
-    timestamp: new Date().toISOString()
+    message: 'Server v3.1 STABLE',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
 app.get('/', (req, res) => {
   res.status(200).json({ 
-    message: 'Eswari Physiotherapy API v3.0',
+    message: 'Eswari Physiotherapy API v3.1',
     health: '/api/health'
   });
 });
@@ -33,11 +34,12 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/admin', require('./routes/admin'));
 
-// Start server on 0.0.0.0
+// Start server - MUST bind to 0.0.0.0 for Railway
 app.listen(PORT, '0.0.0.0', () => {
   console.log('============================================================');
-  console.log(`🚀 Server v3.0 running on http://0.0.0.0:${PORT}`);
+  console.log(`🚀 Server v3.1 STABLE on http://0.0.0.0:${PORT}`);
   console.log(`📍 Health: /api/health`);
+  console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
   console.log('============================================================');
 });
 
@@ -52,18 +54,31 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
 .catch(err => {
   console.error('❌ MongoDB Error:', err.message);
+  // Retry connection
   setTimeout(() => {
-    mongoose.connect(process.env.MONGODB_URI);
+    mongoose.connect(process.env.MONGODB_URI).catch(console.error);
   }, 5000);
 });
 
-// Simple error handling - no shutdown
+// Error handlers - DO NOT EXIT
 process.on('unhandledRejection', (err) => {
-  console.error('❌ Rejection:', err.message);
+  console.error('❌ Unhandled Rejection:', err.message);
+  // Don't exit - just log it
 });
 
-// Ignore signals - let Railway manage lifecycle
-process.on('SIGTERM', () => console.log('⚠️ SIGTERM - ignored'));
-process.on('SIGINT', () => console.log('⚠️ SIGINT - ignored'));
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err.message);
+  // Don't exit - just log it
+});
 
-console.log('✅ App initialized v3.0');
+// Railway sends SIGTERM - just ignore it
+process.on('SIGTERM', () => {
+  console.log('⚠️ SIGTERM received - IGNORED (Railway manages lifecycle)');
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️ SIGINT received - IGNORED');
+});
+
+console.log('✅ Eswari Physiotherapy API v3.1 initialized');
+console.log('⚠️ SIGTERM/SIGINT handlers: IGNORE mode (let Railway manage)');
