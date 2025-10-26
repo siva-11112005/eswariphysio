@@ -1,8 +1,21 @@
 [phases.setup]
-nixPkgs = ['nodejs_18']
+nixPkgs = ['nodejs_18', 'npm-9_x']
 
 [phases.install]
-cmds = ['npm install']
+cmds = [
+  'rm -rf node_modules',
+  'rm -f package-lock.json',
+  'npm cache clean --force',
+  'npm install --no-package-lock',
+  'npm list mongoose'
+]
+
+[phases.build]
+cmds = ['echo "Build complete"']
 
 [start]
 cmd = 'node server.js'
+
+[variables]
+NODE_ENV = 'production'
+NPM_CONFIG_LOGLEVEL = 'verbose'
