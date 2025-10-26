@@ -1,0 +1,13 @@
+{
+  "name": "eswari-physiotherapy",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node backend/server.js",
+    "build": "cd frontend && npm install && npm run build",
+    "install-backend": "cd backend && npm install",
+    "heroku-postbuild": "npm run install-backend && npm run build"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

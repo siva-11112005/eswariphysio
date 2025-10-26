@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path'); // ADD THIS LINE
 
 // Load environment variables
 dotenv.config();
@@ -13,7 +14,7 @@ const PORT = process.env.PORT || 8080;
 app.use(cors({ 
   origin: '*', 
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
@@ -30,7 +31,7 @@ app.get('/api/health', (req, res) => {
   const healthCheck = {
     status: 'healthy',
     service: 'Eswari Physiotherapy API',
-    version: '3.1',
+    version: '3.2',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
@@ -54,34 +55,57 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root endpoint - API info
-app.get('/', (req, res) => {
-  res.status(200).json({ 
-    message: 'Eswari Physiotherapy API v3.1',
-    status: 'running',
-    health: '/api/health',
-    endpoints: {
-      auth: '/api/auth',
-      appointments: '/api/appointments',
-      admin: '/api/admin'
-    },
-    documentation: 'https://github.com/your-repo/eswari-physio'
-  });
-});
-
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/admin', require('./routes/admin'));
 
-// 404 handler for undefined routes
-app.use((req, res) => {
-  res.status(404).json({ 
-    message: 'Route not found',
-    path: req.path,
-    method: req.method
+// ============================================
+// SERVE REACT BUILD IN PRODUCTION - ADD THIS SECTION
+// ============================================
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from React build
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  
+  // API 404 handler - for undefined API routes
+  app.get('/api/*', (req, res) => {
+    res.status(404).json({ 
+      message: 'API route not found',
+      path: req.path,
+      method: req.method
+    });
   });
-});
+  
+  // Handle React routing - this should be LAST
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+} else {
+  // Development mode - show API info
+  app.get('/', (req, res) => {
+    res.status(200).json({ 
+      message: 'Eswari Physiotherapy API v3.2',
+      status: 'running',
+      mode: 'development',
+      health: '/api/health',
+      endpoints: {
+        auth: '/api/auth',
+        appointments: '/api/appointments',
+        admin: '/api/admin'
+      },
+      documentation: 'https://github.com/your-repo/eswari-physio'
+    });
+  });
+  
+  // 404 handler for undefined routes in development
+  app.use((req, res) => {
+    res.status(404).json({ 
+      message: 'Route not found',
+      path: req.path,
+      method: req.method
+    });
+  });
+}
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -94,15 +118,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start HTTP server - MUST bind to 0.0.0.0 for Railway
+// Start HTTP server - MUST bind to 0.0.0.0 for deployment
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('============================================================');
-  console.log(`🚀 Server v3.1 STABLE on http://0.0.0.0:${PORT}`);
+  console.log(`🚀 Server v3.2 on http://0.0.0.0:${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📍 Railway: ${process.env.RAILWAY_ENVIRONMENT || 'local'}`);
+  console.log(`📍 Platform: ${process.env.CYCLIC_APP_ID ? 'Cyclic' : process.env.RAILWAY_ENVIRONMENT ? 'Railway' : 'Local'}`);
   console.log(`📍 Health: /api/health`);
   console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
   console.log('============================================================');
+  
+  if (process.env.NODE_ENV === 'production') {
+    console.log('✅ Serving React build from:', path.join(__dirname, '../frontend/build'));
+  } else {
+    console.log('⚠️  Development mode - React should run separately on port 3000');
+  }
+  
   console.log('✅ HTTP Server listening and ready to accept connections');
 });
 
@@ -207,12 +238,12 @@ process.once('SIGUSR2', () => {
 });
 
 // Log successful initialization
-console.log('✅ Eswari Physiotherapy API v3.1 initialized');
+console.log('✅ Eswari Physiotherapy API v3.2 initialized');
 console.log('⚠️ Signal handlers: GRACEFUL SHUTDOWN mode enabled');
 
-// Keep process alive - Important for Railway
-if (process.env.RAILWAY_ENVIRONMENT) {
-  console.log('🚂 Railway environment detected - staying alive');
+// Keep process alive - Important for deployment platforms
+if (process.env.CYCLIC_APP_ID || process.env.RAILWAY_ENVIRONMENT) {
+  console.log('🚂 Cloud deployment environment detected - staying alive');
   
   // Optional: Heartbeat log every 5 minutes to show the service is alive
   setInterval(() => {
