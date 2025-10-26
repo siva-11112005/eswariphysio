@@ -3,36 +3,28 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
-// Load environment variables FIRST
 dotenv.config();
 
 const app = express();
-
-// CRITICAL: Start HTTP server BEFORE MongoDB connection
 const PORT = process.env.PORT || 5000;
 const HOST = '0.0.0.0';
 
 // Middleware
-app.use(cors({
-  origin: '*',
-  credentials: true
-}));
-
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 
-// Simple health check - responds immediately
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
-    message: 'Server is running',
+    message: 'Server is running - v2.1',
     timestamp: new Date().toISOString()
   });
 });
 
-// Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
-    message: 'Eswari Physiotherapy API',
+    message: 'Eswari Physiotherapy API v2.1',
     health: '/api/health'
   });
 });
@@ -42,78 +34,68 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/admin', require('./routes/admin'));
 
-// Start server IMMEDIATELY
+// Start server
 const server = app.listen(PORT, HOST, () => {
   console.log('============================================================');
   console.log(`🚀 Server running on http://${HOST}:${PORT}`);
-  console.log(`📍 Health: http://${HOST}:${PORT}/api/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📍 Health: /api/health`);
+  console.log(`✅ Server v2.1 started - FIXED`);
   console.log('============================================================');
 });
 
-// Configure server timeouts
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 66000;
-server.timeout = 120000;
 
-// Connect to MongoDB AFTER server is running
+// MongoDB connection
 const connectDB = async () => {
   try {
     console.log('🔄 Connecting to MongoDB...');
-    
     await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
-    
-    console.log('✅ MongoDB Connected Successfully');
+    console.log('✅ MongoDB Connected');
     console.log('📊 Database:', mongoose.connection.db.databaseName);
-    console.log('📱 OTP will be logged here in production');
   } catch (error) {
-    console.error('❌ MongoDB Connection Error:', error.message);
-    console.log('⚠️  Server continues running without MongoDB');
+    console.error('❌ MongoDB Error:', error.message);
     setTimeout(connectDB, 5000);
   }
 };
 
 connectDB();
 
-// Graceful shutdown - FIXED VERSION
-process.on('SIGTERM', async () => {
-  console.log('👋 SIGTERM received, shutting down gracefully');
+// FIXED: No callbacks - use promises
+process.on('SIGTERM', () => {
+  console.log('👋 SIGTERM received - shutting down');
   
-  server.close(async () => {
+  server.close(() => {
     console.log('✅ HTTP server closed');
     
-    try {
-      await mongoose.connection.close(); // ✅ Fixed: No callback
-      console.log('✅ MongoDB connection closed');
-      process.exit(0);
-    } catch (err) {
-      console.error('❌ Error closing MongoDB:', err);
-      process.exit(1);
-    }
+    // Use promise instead of callback
+    mongoose.connection.close()
+      .then(() => {
+        console.log('✅ MongoDB closed');
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error('❌ Error:', err.message);
+        process.exit(1);
+      });
   });
   
-  // Force shutdown after 30 seconds
+  // Force exit after 10 seconds
   setTimeout(() => {
-    console.error('⚠️  Forced shutdown after timeout');
+    console.error('⚠️ Forced shutdown');
     process.exit(1);
-  }, 30000);
+  }, 10000);
 });
 
-process.on('SIGINT', async () => {
-  console.log('👋 SIGINT received, shutting down gracefully');
-  
-  server.close(async () => {
-    try {
-      await mongoose.connection.close();
-      console.log('✅ MongoDB connection closed');
-      process.exit(0);
-    } catch (err) {
-      console.error('❌ Error closing MongoDB:', err);
-      process.exit(1);
-    }
+process.on('SIGINT', () => {
+  console.log('👋 SIGINT received');
+  server.close(() => {
+    mongoose.connection.close()
+      .then(() => process.exit(0))
+      .catch(() => process.exit(1));
   });
 });
 
@@ -122,8 +104,4 @@ process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err.message);
 });
 
-process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err.message);
-});
-
-console.log('✅ Application initialized');
+console.log('✅ Application initialized v2.1');
