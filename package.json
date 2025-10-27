@@ -11,10 +11,10 @@
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\""
   },
   "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
+    "node": "20.x",
+    "npm": ">=9.0.0"
   },
   "keywords": ["physiotherapy", "appointment", "booking"],
-  "author": "Your Name",
+  "author": "Eswari",
   "license": "MIT"
 }
