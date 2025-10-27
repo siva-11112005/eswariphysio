@@ -10,7 +10,7 @@ const client = twilio(accountSid, authToken);
 
 const sendSMS = async (to, text) => {
   try {
-    console.log('ðŸ“± Twilio SMS Details:');
+    console.log('í³± Twilio SMS Details:');
     console.log('   To:', to);
     console.log('   From:', twilioPhone);
     console.log('   Message:', text.substring(0, 50) + '...');
@@ -29,32 +29,29 @@ const sendSMS = async (to, text) => {
     console.error('âŒ Twilio SMS Error:', error.message);
     console.error('   Error Code:', error.code);
     
-    // Common error messages
     if (error.code === 21608) {
       console.error('   âš ï¸  The number is not verified in Twilio Console');
-      console.error('   â†’ Go to: Phone Numbers â†’ Verified Caller IDs');
     } else if (error.code === 21211) {
       console.error('   âš ï¸  Invalid phone number format');
     } else if (error.code === 20003) {
       console.error('   âš ï¸  Authentication failed - check credentials');
     }
     
-    // Log OTP for development/testing
     if (text.includes('OTP') || text.includes('otp')) {
       const otpMatch = text.match(/\d{6}/);
       if (otpMatch) {
-        console.log('ðŸ” OTP (check console for testing):', otpMatch[0]);
+        console.log('í´ OTP (check console for testing):', otpMatch[0]);
       }
     }
     
-    return true; // Continue even if SMS fails
+    return true;
   }
 };
 
 const sendOTP = async (phone, otp) => {
   console.log('');
   console.log('â•'.repeat(60));
-  console.log('ðŸ” OTP GENERATED:');
+  console.log('í´ OTP GENERATED:');
   console.log('   Phone:', phone);
   console.log('   OTP:', otp);
   console.log('   Valid for: 5 minutes');
@@ -72,7 +69,7 @@ const sendOTP = async (phone, otp) => {
 };
 
 const sendBookingConfirmation = async (phone, date, timeSlot) => {
-  console.log('ðŸ“… Sending Booking Confirmation:', { phone, date, timeSlot });
+  console.log('í³… Sending Booking Confirmation:', { phone, date, timeSlot });
   const message = `Your appointment with Eswari Physiotherapy is confirmed for ${date} at ${timeSlot}. For details, contact ${process.env.ADMIN_PHONE}`;
   return await sendSMS(phone, message);
 };
