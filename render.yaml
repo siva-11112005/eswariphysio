@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: eswari-physiotherapy
+    env: node
+    region: singapore  # or oregon, frankfurt (choose closest to you)
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: VONAGE_API_KEY
+        sync: false
+      - key: VONAGE_API_SECRET
+        sync: false
+      - key: VONAGE_FROM_NUMBER
+        value: Eswari
+      - key: ADMIN_PHONE
+        value: +919524350214
+      - key: OTP_VALIDITY_MINUTES
+        value: 5
+      - key: MAX_OTP_PER_DAY
+        value: 5

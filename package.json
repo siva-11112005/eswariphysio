@@ -1,13 +1,20 @@
 {
   "name": "eswari-physiotherapy",
   "version": "1.0.0",
+  "description": "Physiotherapy appointment booking system",
   "scripts": {
     "start": "node backend/server.js",
-    "build": "cd frontend && npm install && npm run build",
+    "build": "npm run install-backend && npm run install-frontend && npm run build-frontend",
     "install-backend": "cd backend && npm install",
-    "heroku-postbuild": "npm run install-backend && npm run build"
+    "install-frontend": "cd frontend && npm install",
+    "build-frontend": "cd frontend && npm run build",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\""
   },
   "engines": {
-    "node": ">=14.0.0"
-  }
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": ["physiotherapy", "appointment", "booking"],
+  "author": "Your Name",
+  "license": "MIT"
 }

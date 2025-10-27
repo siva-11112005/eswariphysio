@@ -1,13 +1,20 @@
 import axios from 'axios';
 
-// Use environment variable for API URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// In production, use relative URLs (same domain)
+// In development, use localhost:5000
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
+
+console.log('API URL:', API_URL);
+console.log('Environment:', process.env.NODE_ENV);
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 30000 // 30 second timeout
 });
 
 // Add token to requests
@@ -19,10 +26,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth APIs
 export const sendOTP = (phone) => api.post('/auth/send-otp', { phone });
 export const verifyOTP = (data) => api.post('/auth/verify-otp', data);
-export const login = (data) => api.post('/auth/login', data); // Now accepts { identifier, password }
+export const login = (data) => api.post('/auth/login', data);
 export const forgotPassword = (phone) => api.post('/auth/forgot-password', { phone });
 export const resetPassword = (data) => api.post('/auth/reset-password', data);
 export const getCurrentUser = () => api.get('/auth/me');
