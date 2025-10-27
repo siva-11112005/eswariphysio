@@ -1,25 +1,52 @@
-const { Vonage } = require('@vonage/server-sdk');
+const twilio = require('twilio');
 
-const vonage = new Vonage({
-  apiKey: process.env.VONAGE_API_KEY,
-  apiSecret: process.env.VONAGE_API_SECRET
-});
+// Twilio credentials from environment variables
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+// Initialize Twilio client
+const client = twilio(accountSid, authToken);
 
 const sendSMS = async (to, text) => {
   try {
-    const from = process.env.VONAGE_FROM_NUMBER;
-    
-    console.log('📱 SMS Details:');
+    console.log('📱 Twilio SMS Details:');
     console.log('   To:', to);
-    console.log('   From:', from);
-    console.log('   Message:', text);
+    console.log('   From:', twilioPhone);
+    console.log('   Message:', text.substring(0, 50) + '...');
     
-    const result = await vonage.sms.send({ to, from, text });
-    console.log('✅ SMS sent successfully');
+    const message = await client.messages.create({
+      body: text,
+      from: twilioPhone,
+      to: to
+    });
+    
+    console.log('✅ SMS sent successfully via Twilio');
+    console.log('   Message SID:', message.sid);
+    console.log('   Status:', message.status);
     return true;
   } catch (error) {
-    console.error('❌ SMS Error:', error.message);
-    console.error('Full error:', JSON.stringify(error, null, 2));
+    console.error('❌ Twilio SMS Error:', error.message);
+    console.error('   Error Code:', error.code);
+    
+    // Common error messages
+    if (error.code === 21608) {
+      console.error('   ⚠️  The number is not verified in Twilio Console');
+      console.error('   → Go to: Phone Numbers → Verified Caller IDs');
+    } else if (error.code === 21211) {
+      console.error('   ⚠️  Invalid phone number format');
+    } else if (error.code === 20003) {
+      console.error('   ⚠️  Authentication failed - check credentials');
+    }
+    
+    // Log OTP for development/testing
+    if (text.includes('OTP') || text.includes('otp')) {
+      const otpMatch = text.match(/\d{6}/);
+      if (otpMatch) {
+        console.log('🔐 OTP (check console for testing):', otpMatch[0]);
+      }
+    }
+    
     return true; // Continue even if SMS fails
   }
 };
@@ -45,13 +72,13 @@ const sendOTP = async (phone, otp) => {
 };
 
 const sendBookingConfirmation = async (phone, date, timeSlot) => {
-  console.log('📅 Booking Confirmation:', { phone, date, timeSlot });
+  console.log('📅 Sending Booking Confirmation:', { phone, date, timeSlot });
   const message = `Your appointment with Eswari Physiotherapy is confirmed for ${date} at ${timeSlot}. For details, contact ${process.env.ADMIN_PHONE}`;
   return await sendSMS(phone, message);
 };
 
 const sendCancellationNotice = async (phone) => {
-  console.log('❌ Cancellation Notice:', phone);
+  console.log('❌ Sending Cancellation Notice:', phone);
   const message = `Your appointment with Eswari Physiotherapy has been cancelled. For details, contact ${process.env.ADMIN_PHONE}`;
   return await sendSMS(phone, message);
 };
