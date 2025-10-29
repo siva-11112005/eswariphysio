@@ -14,7 +14,14 @@
     "node": "20.x",
     "npm": ">=9.0.0"
   },
-  "keywords": ["physiotherapy", "appointment", "booking"],
+  "keywords": [
+    "physiotherapy",
+    "appointment",
+    "booking"
+  ],
   "author": "Eswari",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "mongoose": "^8.19.2"
+  }
 }
